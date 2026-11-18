@@ -21,7 +21,7 @@ class TestNavigation:
         assert page.get_current_url() == FEED_URL
 
     @allure.title('Переход из ленты заказов в конструктор')
-    def test_open_construcktor(self, driver):
+    def test_open_constructor(self, driver):
         page = ConstructorPage(driver)
         page.open_url(FEED_URL)
         page.click_constructor_tab()
