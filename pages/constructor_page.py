@@ -20,6 +20,15 @@ class ConstructorPage(BasePage):
         "//section[contains(@class, 'Modal_modal_opened')]"
         "//div[contains(@class, 'Modal_modal__container')]"
     )
+    POPUP_TITLE = (
+        By.XPATH,
+        "//section[contains(@class, 'Modal_modal_opened')]"
+        "//h2[normalize-space()='Детали ингредиента']"
+    )
+    MODAL_OVERLAYS = (
+        By.XPATH,
+        "//div[contains(@class, 'Modal_modal_overlay')]"
+    )
     POPUP_CLOSE_BUTTON = (By.XPATH, "//section[contains(@class, 'Modal_modal_opened')]"
         "//button[contains(@class, 'Modal_modal__close')]")
     INGREDIENT_COUNTER = (By.XPATH, "(//a[starts-with(@href, '/ingredient/')])[1]"
@@ -54,7 +63,7 @@ class ConstructorPage(BasePage):
     def is_popup_visible(self):
         return self.wait_visible(self.POPUP)
 
-    @allure.step('Закрыть попап ингредиента')
+    @allure.step('Закрыть окно и дождаться исчезновения оверлея')
     def close_popup(self):
         def click_close(driver):
             try:
@@ -63,8 +72,15 @@ class ConstructorPage(BasePage):
             except ElementClickInterceptedException:
                 return False
 
-        WebDriverWait(self.driver, 10).until(click_close)
-        return self.wait_invisible(self.POPUP)
+        WebDriverWait(self.driver, self.TIMEOUT).until(click_close)
+        self.wait_invisible(self.POPUP)
+
+        return WebDriverWait(self.driver, self.TIMEOUT).until(
+            lambda driver: all(
+                not overlay.is_displayed()
+                for overlay in driver.find_elements(*self.MODAL_OVERLAYS)
+            )
+        )
 
     @allure.step('Получить значение счетчика ингредиента')
     def get_ingredient_counter(self):
@@ -135,3 +151,7 @@ class ConstructorPage(BasePage):
             return number
 
         return WebDriverWait(self.driver, 30).until(number_is_ready)
+
+    @allure.step('Получить заголовок окна деталей ингредиента')
+    def get_popup_title(self):
+        return self.get_text(self.POPUP_TITLE)

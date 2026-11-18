@@ -10,6 +10,7 @@ def test_open_ingredient_modal(driver):
     page.click_first_ingredient()
 
     assert page.is_popup_visible().is_displayed()
+    assert page.get_popup_title() == 'Детали ингредиента'
 
 @allure.title('Крестик закрывает окно деталей ингредиента')
 def test_close_ingredient_modal(driver):
