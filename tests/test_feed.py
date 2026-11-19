@@ -1,6 +1,4 @@
 import allure
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException
 from pages.constructor_page import ConstructorPage
 from pages.feed_page import FeedPage
 from urls import FEED_URL
@@ -17,19 +15,18 @@ class TestFeed:
 
         constructor.click_constructor_tab()
         constructor.wait_for_title()
-        constructor.drag_first_ingredient()
-        constructor.drag_first_filling()
+        constructor.drag_bun()
+        constructor.drag_filling()
         constructor.wait_for_filling()
 
         constructor.click_order_button()
-        order_number = constructor.get_order_number()
-        assert order_number > 0
+        constructor.get_order_number()
         constructor.close_popup()
 
         constructor.click_feed_tab()
         feed.wait_for_title()
 
-        WebDriverWait(authorized_driver, 30).until(lambda _: feed.get_total() > before)
+        feed.wait_for_total_increase(before)
         assert feed.get_total() > before
 
     @allure.title('Новый заказ увеличивает счётчик за сегодня')
@@ -42,21 +39,18 @@ class TestFeed:
 
         constructor.click_constructor_tab()
         constructor.wait_for_title()
-        constructor.drag_first_ingredient()
-        constructor.drag_first_filling()
+        constructor.drag_bun()
+        constructor.drag_filling()
         constructor.wait_for_filling()
 
         constructor.click_order_button()
-        order_number = constructor.get_order_number()
-        assert order_number > 0
+        constructor.get_order_number()
         constructor.close_popup()
 
         constructor.click_feed_tab()
         feed.wait_for_title()
 
-        WebDriverWait(authorized_driver, 30).until(
-            lambda _: feed.get_today() > before
-        )
+        feed.wait_for_today_increase(before)
         assert feed.get_today() > before
 
     @allure.title('Номер нового заказа появляется в разделе «В работе»')
@@ -65,14 +59,10 @@ class TestFeed:
         feed = FeedPage(authorized_driver)
 
         constructor.wait_for_title()
-        constructor.drag_first_ingredient()
-        constructor.drag_first_filling()
+        constructor.drag_bun()
+        constructor.drag_filling()
 
-        try:
-            constructor.wait_for_filling()
-        except TimeoutException:
-            authorized_driver.save_screenshot('filling_error.png')
-            raise
+        constructor.wait_for_filling()
 
         constructor.click_order_button()
         order_number = constructor.get_order_number()
@@ -81,7 +71,5 @@ class TestFeed:
         constructor.click_feed_tab()
         feed.wait_for_title()
 
-        WebDriverWait(authorized_driver, 30).until(
-            lambda _: order_number in feed.get_in_progress_numbers()
-        )
+        feed.wait_for_order_in_progress(order_number)
         assert order_number in feed.get_in_progress_numbers()

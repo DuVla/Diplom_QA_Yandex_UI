@@ -1,5 +1,4 @@
 import pytest
-from selenium.common.exceptions import TimeoutException
 from pages.constructor_page import ConstructorPage
 from selenium import webdriver
 from api_helpers import generate_user, register_user, delete_user
@@ -34,34 +33,18 @@ def driver(request):
 def registered_user():
     payload = generate_user()
     response = register_user(payload)
-    assert response.status_code == 200
+    response.raise_for_status()
 
     data = response.json()
 
     yield data
 
-    delete_response = delete_user(data['accessToken'])
-    assert delete_response.status_code == 202
+    delete_user(data['accessToken']).raise_for_status()
 
 @pytest.fixture
 def authorized_driver(driver, registered_user):
-    driver.get(BASE_URL)
-
-    driver.execute_script(
-        """
-        localStorage.setItem('accessToken', arguments[0]);
-        localStorage.setItem('refreshToken', arguments[1]);
-        """,
-        registered_user['accessToken'],
-        registered_user['refreshToken']
-    )
-
-    try:
-        driver.refresh()
-    except TimeoutException:
-        driver.execute_script('window.stop();')
-
     page = ConstructorPage(driver)
+    page.open_url(BASE_URL)
+    page.authorize(registered_user['accessToken'], registered_user['refreshToken'])
     page.wait_for_order_button()
-
     return driver

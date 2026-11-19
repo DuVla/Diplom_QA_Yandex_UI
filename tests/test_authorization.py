@@ -4,15 +4,14 @@ from pages.constructor_page import ConstructorPage
 
 
 class TestAuthorization:
-    @allure.title('Авторизованному пользователю доступно оформление заказа')
+    @allure.title('Авторизованный пользователь может оформить заказ')
     def test_authorization_user(self, authorized_driver):
         page = ConstructorPage(authorized_driver)
-        page.drag_first_ingredient()
-        page.drag_first_filling()
-
-        assert page.wait_for_filling().is_displayed()
-        assert page.wait_for_order_button().is_displayed()
-
+        page.wait_for_title()
+        page.drag_bun()
+        page.drag_filling()
+        page.wait_for_filling()
+        page.wait_for_order_button()
         page.click_order_button()
         order_number = page.get_order_number()
 

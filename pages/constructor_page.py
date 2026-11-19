@@ -1,87 +1,58 @@
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.common.exceptions import ElementClickInterceptedException
-from pages.base_page import BasePage
 import allure
+
+from pages.base_page import BasePage
 from locators.constructor_locators import ConstructorLocators
 
 
 class ConstructorPage(BasePage):
-    @allure.step('Открыть вкладку "Конструктор"')
+    @allure.step('Открыть вкладку «Конструктор»')
     def click_constructor_tab(self):
         self.click_element(ConstructorLocators.CONSTRUCTOR_TAB)
 
-    @allure.step('Открыть вкладку "Лента заказов"')
+    @allure.step('Открыть вкладку «Лента заказов»')
     def click_feed_tab(self):
         self.click_element(ConstructorLocators.FEED_TAB)
 
-    @allure.step('Кликнуть по первому ингредиенту')
-    def click_first_ingredient(self):
+    @allure.step('Открыть детали булки «Краторная булка N-200i»')
+    def click_ingredient(self):
         self.click_element(ConstructorLocators.INGREDIENT_ITEM)
 
-    @allure.step('Проверить, что попап с деталями ингредиента открыт')
+    @allure.step('Проверить видимость окна деталей ингредиента')
     def is_popup_visible(self):
-        return self.wait_visible(ConstructorLocators.POPUP)
+        return self.is_visible(ConstructorLocators.POPUP)
 
     @allure.step('Закрыть окно и дождаться исчезновения оверлея')
     def close_popup(self):
-        def click_close(driver):
-            try:
-                self.wait_visible(ConstructorLocators.POPUP_CLOSE_BUTTON).click()
-                return True
-            except ElementClickInterceptedException:
-                return False
-
-        WebDriverWait(self.driver, self.TIMEOUT).until(click_close)
+        self.click_element(ConstructorLocators.POPUP_CLOSE_BUTTON)
         self.wait_invisible(ConstructorLocators.POPUP)
+        self.wait_all_invisible(ConstructorLocators.MODAL_OVERLAYS)
 
-        return WebDriverWait(self.driver, self.TIMEOUT).until(
-            lambda driver: all(
-                not overlay.is_displayed()
-                for overlay in driver.find_elements(*ConstructorLocators.MODAL_OVERLAYS)
-            )
+    @allure.step('Проверить, что окно деталей ингредиента закрыто')
+    def is_popup_closed(self):
+        return (
+            self.are_all_invisible(ConstructorLocators.POPUP)
+            and self.are_all_invisible(ConstructorLocators.MODAL_OVERLAYS)
         )
 
-    @allure.step('Получить значение счетчика ингредиента')
+    @allure.step('Получить счётчик булки «Краторная булка N-200i»')
     def get_ingredient_counter(self):
         return int(self.get_text(ConstructorLocators.INGREDIENT_COUNTER))
 
-    @allure.step('Дождать заголовка конструктора')
+    @allure.step('Дождаться увеличения счётчика ингредиента')
+    def wait_for_counter_increase(self, before):
+        return self.wait_until(lambda: self.get_ingredient_counter() > before)
+
+    @allure.step('Дождаться заголовка конструктора')
     def wait_for_title(self):
         return self.wait_visible(ConstructorLocators.TITLE)
 
-    @allure.step('Перетащить ингредиент в конструктор')
-    def drag_ingredient(self, locator):
-        self.wait_visible(locator)
-        ingredient = self.scroll_to_element(locator)
-        drop_area = self.wait_visible(ConstructorLocators.DROP_AREA)
+    @allure.step('Добавить булку «Краторная булка N-200i»')
+    def drag_bun(self):
+        self.drag_and_drop(ConstructorLocators.INGREDIENT_ITEM, ConstructorLocators.DROP_AREA)
 
-        self.driver.execute_script("""
-            const source = arguments[0];
-            const target = arguments[1];
-            const dataTransfer = new DataTransfer();
-
-            source.dispatchEvent(new DragEvent('dragstart', {
-                bubbles: true, dataTransfer
-            }));
-            target.dispatchEvent(new DragEvent('dragenter', {
-                bubbles: true, dataTransfer
-            }));
-            target.dispatchEvent(new DragEvent('dragover', {
-                bubbles: true, cancelable: true, dataTransfer
-            }));
-            target.dispatchEvent(new DragEvent('drop', {
-                bubbles: true, cancelable: true, dataTransfer
-            }));
-            source.dispatchEvent(new DragEvent('dragend', {
-                bubbles: true, dataTransfer
-            }));
-        """, ingredient, drop_area)
-
-    def drag_first_ingredient(self):
-        self.drag_ingredient(ConstructorLocators.INGREDIENT_ITEM)
-
-    def drag_first_filling(self):
-        self.drag_ingredient(ConstructorLocators.FILLING_ITEM)
+    @allure.step('Добавить начинку «Хрустящие минеральные кольца»')
+    def drag_filling(self):
+        self.drag_and_drop(ConstructorLocators.FILLING_ITEM, ConstructorLocators.DROP_AREA)
 
     @allure.step('Дождаться кнопки оформления заказа')
     def wait_for_order_button(self):
@@ -97,19 +68,7 @@ class ConstructorPage(BasePage):
 
     @allure.step('Дождаться номера созданного заказа')
     def get_order_number(self):
-        def number_is_ready(driver):
-            text = self.get_text(ConstructorLocators.ORDER_NUMBER).strip()
-
-            if not text.isdigit():
-                return False
-
-            number = int(text)
-            if number in (0, 9999):
-                return False
-
-            return number
-
-        return WebDriverWait(self.driver, 30).until(number_is_ready)
+        return self.wait_for_number(ConstructorLocators.ORDER_NUMBER, excluded_numbers=(0, 9999))
 
     @allure.step('Получить заголовок окна деталей ингредиента')
     def get_popup_title(self):
